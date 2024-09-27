@@ -1,0 +1,102 @@
+import pygame
+import random
+
+# 初始化 Pygame
+pygame.init()
+
+# 設定顯示螢幕大小
+screen_width = 800
+screen_height = 400
+screen = pygame.display.set_mode((screen_width, screen_height))
+
+# 設定顏色
+sky_blue = (135, 206, 235)
+ground_green = (144, 238, 144)
+
+# 遊戲參數
+gravity = 0.8
+jump_height = -15
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.image.load('stick-man--no-background.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (50, 50))  # 縮放圖片
+        self.rect = self.image.get_rect()
+        self.rect.x = 100
+        self.rect.y = screen_height - 150
+        self.velocity = 0
+
+    def update(self):
+        self.velocity += gravity
+        self.rect.y += self.velocity
+
+        if self.rect.y >= screen_height - 50:
+            self.rect.y = screen_height - 50
+            self.velocity = 0
+
+    def jump(self):
+        if self.rect.y == screen_height - 50:
+            self.velocity = jump_height
+
+class Obstacle(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.image.load('wall.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (20, 50))  # 縮放圖片
+        self.rect = self.image.get_rect()
+        self.rect.x = screen_width
+        self.rect.y = screen_height - 50
+
+    def update(self):
+        self.rect.x -= 5
+        if self.rect.x < 0:
+            self.kill()
+
+def main():
+    running = True
+    clock = pygame.time.Clock()
+    player = Player()
+    all_sprites = pygame.sprite.Group()
+    obstacles = pygame.sprite.Group()
+    all_sprites.add(player)
+    last_obstacle_time = pygame.time.get_ticks()
+    next_obstacle_interval = random.uniform(2000, 4000)  # 隨機生成 2 到 4 秒 的間隔時間
+
+    # 遊戲主要迴圈
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    player.jump()
+
+        # 生成障礙物的計時器邏輯
+        current_time = pygame.time.get_ticks()
+        if current_time - last_obstacle_time > next_obstacle_interval:
+            obstacle = Obstacle()
+            all_sprites.add(obstacle)
+            obstacles.add(obstacle)
+            last_obstacle_time = current_time
+            next_obstacle_interval = random.uniform(2000, 4000)  # 重新設置下一個隨機間隔
+
+        # 更新所有精靈
+        all_sprites.update()
+
+        # 碰撞檢測
+        if pygame.sprite.spritecollideany(player, obstacles):
+            running = False
+
+        # 繪製背景、玩家和障礙物
+        screen.fill(sky_blue)
+        pygame.draw.rect(screen, ground_green, [0, screen_height - 50, screen_width, 50])
+        all_sprites.draw(screen)
+        pygame.display.flip()
+
+        clock.tick(30)
+
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
